@@ -59,19 +59,64 @@ def _clamp_text(value: str, max_len: int) -> str:
     return value[:max_len]
 
 
-def resolve_fee_receiver() -> str:
-    raw = os.getenv("OPG_FEE_RECEIVER", "").strip()
-    if raw:
-        return Web3.to_checksum_address(raw)
+def _clean_env_value(raw: str | None) -> str:
+    if raw is None:
+        return ""
+    return raw.strip().strip('"').strip("'")
 
-    key = load_private_key()
-    if key:
-        acct = Web3().eth.account.from_key(key)
-        return Web3.to_checksum_address(acct.address)
+
+def _first_env_value(*names: str) -> str:
+    for name in names:
+        value = _clean_env_value(os.getenv(name))
+        if value:
+            return value
     return ""
 
 
-OPG_FEE_RECEIVER = resolve_fee_receiver()
+FEE_RECEIVER_ENV_NAMES = (
+    "OPG_FEE_RECEIVER",
+    "FEE_RECEIVER",
+    "TREASURY_WALLET",
+    "FEE_WALLET",
+)
+PRIVATE_KEY_ENV_NAMES = (
+    "OG_PRIVATE_KEY",
+    "OPENGRADIENT_PRIVATE_KEY",
+    "OPEN_GRADIENT_PRIVATE_KEY",
+    "OPG_PRIVATE_KEY",
+    "WALLET_PRIVATE_KEY",
+    "PRIVATE_KEY",
+)
+
+
+def _fee_config_flags() -> str:
+    parts = []
+    for name in FEE_RECEIVER_ENV_NAMES:
+        parts.append(f"{name}={'1' if _clean_env_value(os.getenv(name)) else '0'}")
+    for name in PRIVATE_KEY_ENV_NAMES:
+        parts.append(f"{name}={'1' if _clean_env_value(os.getenv(name)) else '0'}")
+    return ", ".join(parts)
+
+
+def resolve_fee_receiver() -> str:
+    raw = _first_env_value(*FEE_RECEIVER_ENV_NAMES)
+    if raw:
+        try:
+            return Web3.to_checksum_address(raw)
+        except Exception:
+            # Invalid address text; continue and try deriving from private key.
+            pass
+
+    key = load_private_key()
+    if key:
+        try:
+            acct = Web3().eth.account.from_key(key)
+            return Web3.to_checksum_address(acct.address)
+        except Exception:
+            return ""
+    return ""
+
+
 W3_BASE = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC_URL))
 TRANSFER_TOPIC = Web3.keccak(text="Transfer(address,address,uint256)").hex().lower()
 
@@ -251,10 +296,12 @@ def _require_fee_payment(payload: dict) -> tuple[str, str, int, bool]:
     fee_tx_hash_raw = str(payload.get("fee_tx_hash") or "").strip()
     if not wallet_address_raw:
         raise ValueError("wallet_address is required")
-    if not OPG_FEE_RECEIVER:
+    fee_receiver = resolve_fee_receiver()
+    if not fee_receiver:
         raise RuntimeError(
             "Fee configuration missing on server. "
-            "Set OPG_FEE_RECEIVER or OG_PRIVATE_KEY/OPENGRADIENT_PRIVATE_KEY."
+            "Set OPG_FEE_RECEIVER/FEE_RECEIVER or OG_PRIVATE_KEY/OPENGRADIENT_PRIVATE_KEY. "
+            f"Detected env flags: {_fee_config_flags()}"
         )
 
     wallet_address = Web3.to_checksum_address(wallet_address_raw)
@@ -298,7 +345,7 @@ def _require_fee_payment(payload: dict) -> tuple[str, str, int, bool]:
             from_addr = _topic_addr(topics[1].hex())
             to_addr = _topic_addr(topics[2].hex())
             value_wei = _hex_to_int(log.get("data", "0x0"))
-            if from_addr == wallet_address and to_addr == OPG_FEE_RECEIVER and value_wei >= OPG_FEE_WEI:
+            if from_addr == wallet_address and to_addr == fee_receiver and value_wei >= OPG_FEE_WEI:
                 paid_ok = True
                 break
 
@@ -319,6 +366,7 @@ def index():
 
 @app.route("/api/ping")
 def api_ping():
+    fee_receiver = resolve_fee_receiver()
     return jsonify(
         {
             "ok": True,
@@ -328,7 +376,8 @@ def api_ping():
             "fee_required": True,
             "fee_token": OPG_TOKEN_ADDRESS,
             "fee_amount_opg": str(OPG_FEE_AMOUNT),
-            "fee_receiver": OPG_FEE_RECEIVER,
+            "fee_receiver": fee_receiver,
+            "fee_configured": bool(fee_receiver),
             "fee_chain_id": BASE_SEPOLIA_CHAIN_ID_HEX,
             "runs_per_fee_tx": RUNS_PER_FEE_TX,
             "credits_store": FEE_STATE.mode,

@@ -137,10 +137,26 @@ def _model_candidates(current_name: str, current_model: Any) -> List[Tuple[str, 
 
 
 def load_private_key() -> Optional[str]:
-    for env_name in ("OG_PRIVATE_KEY", "OPENGRADIENT_PRIVATE_KEY"):
-        key = os.getenv(env_name)
-        if key and key.strip():
-            return key.strip()
+    def _clean_key(raw: str | None) -> str:
+        if not raw:
+            return ""
+        value = raw.strip().strip('"').strip("'")
+        if re.fullmatch(r"[0-9a-fA-F]{64}", value):
+            value = f"0x{value}"
+        return value
+
+    env_candidates = (
+        "OG_PRIVATE_KEY",
+        "OPENGRADIENT_PRIVATE_KEY",
+        "OPEN_GRADIENT_PRIVATE_KEY",
+        "OPG_PRIVATE_KEY",
+        "WALLET_PRIVATE_KEY",
+        "PRIVATE_KEY",
+    )
+    for env_name in env_candidates:
+        key = _clean_key(os.getenv(env_name))
+        if key:
+            return key
 
     # Lightweight .env reader (no external dependency).
     env_candidates = [
@@ -157,9 +173,16 @@ def load_private_key() -> Optional[str]:
                     continue
                 k, v = line.split("=", 1)
                 key_name = k.strip()
-                if key_name not in {"OG_PRIVATE_KEY", "OPENGRADIENT_PRIVATE_KEY"}:
+                if key_name not in {
+                    "OG_PRIVATE_KEY",
+                    "OPENGRADIENT_PRIVATE_KEY",
+                    "OPEN_GRADIENT_PRIVATE_KEY",
+                    "OPG_PRIVATE_KEY",
+                    "WALLET_PRIVATE_KEY",
+                    "PRIVATE_KEY",
+                }:
                     continue
-                value = v.strip().strip('"').strip("'")
+                value = _clean_key(v)
                 if value:
                     return value
         except Exception:
@@ -170,8 +193,10 @@ def load_private_key() -> Optional[str]:
         try:
             data = json.loads(cfg_path.read_text())
             cfg_key = data.get("private_key")
-            if isinstance(cfg_key, str) and cfg_key.strip():
-                return cfg_key.strip()
+            if isinstance(cfg_key, str):
+                value = _clean_key(cfg_key)
+                if value:
+                    return value
         except Exception:
             return None
     return None

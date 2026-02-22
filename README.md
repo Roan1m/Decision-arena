@@ -40,14 +40,20 @@ Open: `http://127.0.0.1:8099`
 
 ## Important env vars
 
-- `OG_PRIVATE_KEY` or `OPENGRADIENT_PRIVATE_KEY`
+- Private key (any one works):
+  - `OG_PRIVATE_KEY`
+  - `OPENGRADIENT_PRIVATE_KEY`
+  - `OPEN_GRADIENT_PRIVATE_KEY`
+  - `OPG_PRIVATE_KEY`
 - `OPG_FEE_AMOUNT=0.0001`
 - `RUNS_PER_FEE_TX=10`
-- `OPG_FEE_RECEIVER=0x...` (optional; defaults to backend wallet)
+- Fee receiver (optional if private key exists):
+  - `OPG_FEE_RECEIVER=0x...`
+  - `FEE_RECEIVER=0x...`
 - `OPG_AUTO_APPROVE=1`
 - `OPG_APPROVAL_AMOUNT=1.0`
 - `DA_DEFAULT_MODEL=GPT_4O`
-- `DA_MAX_TOKENS=1200`
+- `DA_MAX_TOKENS=700`
 - `DA_CHAT_RETRIES=2`
 - `DA_SETTLEMENT_MODES=SETTLE,SETTLE_BATCH`
 
@@ -56,3 +62,4 @@ Open: `http://127.0.0.1:8099`
 - Vercel entrypoint: `api/index.py`
 - `vercel.json` rewrites all routes to `/api/index`
 - Railway start command is in `Procfile` and `railway.toml`
+- On Vercel, env vars must be added in Project Settings -> Environment Variables, then redeploy.
