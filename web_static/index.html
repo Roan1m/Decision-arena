@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Decision Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="label">AI Decision Copilot</p>
+          <h1>Decision Arena</h1>
+          <p class="subtitle">One clear input. One strong recommendation. Wallet payment stays required.</p>
+        </div>
+      </header>
+
+      <section class="wallet-ribbon">
+        <div class="wallet-ribbon-left">
+          <p class="wallet-kicker">Access Layer</p>
+          <h2>Connect Wallet To Unlock</h2>
+          <p class="wallet-subtext">All Ask/Review actions stay locked until wallet authentication is complete.</p>
+        </div>
+        <div class="wallet-ribbon-right">
+          <p id="walletBadge" class="wallet-badge">Disconnected</p>
+          <button id="walletBtn" class="wallet-btn" type="button">Connect Wallet</button>
+          <p id="walletInfo" class="wallet-info">Base Sepolia required</p>
+        </div>
+      </section>
+
+      <section class="studio-grid">
+        <article class="input-card">
+          <div class="step-head">
+            <span class="step-num">1</span>
+            <div>
+              <h2>Your decision</h2>
+              <p>Write the exact decision you need to make.</p>
+            </div>
+          </div>
+
+          <div class="chip-row" id="chipRow">
+            <button type="button" class="idea-chip" data-template="Should we launch the product this quarter?">Launch</button>
+            <button type="button" class="idea-chip" data-template="Should we enter a new market in the next 90 days?">Expansion</button>
+            <button type="button" class="idea-chip" data-template="Should we cut prices now or keep margin?">Pricing</button>
+            <button type="button" class="idea-chip" data-template="Should we hire senior talent now with limited budget?">Hiring</button>
+          </div>
+
+          <label class="field">
+            <span>Decision (required)</span>
+            <textarea id="decisionInput" rows="5" placeholder="Example: Should we launch product X in 6 weeks with a small team?"></textarea>
+          </label>
+
+          <details class="optional-box">
+            <summary>Optional details</summary>
+            <label class="field">
+              <span>Extra context</span>
+              <textarea id="contextInput" rows="3" placeholder="Deadlines, team limits, market pressure..."></textarea>
+            </label>
+            <div class="control-grid">
+              <label class="field">
+                <span>Risk appetite</span>
+                <select id="riskInput">
+                  <option value="low">Low</option>
+                  <option value="balanced" selected>Balanced</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Difficulty</span>
+                <select id="difficultyInput">
+                  <option value="normal">Normal</option>
+                  <option value="hard" selected>Hard</option>
+                  <option value="extreme">Extreme</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Horizon (days)</span>
+                <input id="horizonInput" type="number" min="7" max="365" value="45" />
+              </label>
+              <label class="field">
+                <span>Model (optional)</span>
+                <input id="modelInput" type="text" placeholder="GPT_4O" />
+              </label>
+            </div>
+          </details>
+
+          <div class="run-zone">
+            <button id="runBtn" class="run-btn" type="button">Run Analysis</button>
+            <p id="statusLine" class="status-line" data-state="ok">System booting...</p>
+          </div>
+        </article>
+
+        <article class="results-card" id="resultsCard">
+          <div id="walletGate" class="wallet-gate">
+            <div class="wallet-gate-grid">
+              <p class="wallet-gate-label">LOCKED MODE</p>
+              <h3>Wallet connection required</h3>
+              <p>Connect your wallet on Base Sepolia once, then continue normally.</p>
+              <button id="walletOverlayBtn" type="button">Connect Wallet</button>
+            </div>
+          </div>
+
+          <div class="result-head">
+            <h2>Result</h2>
+            <p>Clear output without noise.</p>
+          </div>
+
+          <div class="kpi-grid">
+            <section class="kpi-box">
+              <p class="kpi-label">AI Verdict</p>
+              <p id="verdictHeadline" class="kpi-main">Waiting for analysis...</p>
+            </section>
+            <section class="kpi-box">
+              <p class="kpi-label">Confidence</p>
+              <p id="confidenceScore" class="kpi-main mono">0 / 100</p>
+              <div class="confidence-track">
+                <div id="confidenceFill" class="confidence-fill"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="action-grid">
+            <section class="action-box">
+              <h3>Point of View</h3>
+              <pre id="pointViewBox" class="output">-</pre>
+            </section>
+            <section class="action-box">
+              <h3>Why This View</h3>
+              <pre id="whyViewBox" class="output">-</pre>
+            </section>
+            <section class="action-box">
+              <h3>Main Concerns</h3>
+              <pre id="concernsBox" class="output">-</pre>
+            </section>
+          </div>
+
+          <section class="brief-box">
+            <h3>Opposite View</h3>
+            <pre id="oppositeBox" class="output">Run analysis to see the opposing case.</pre>
+          </section>
+
+          <section class="brief-box">
+            <h3>Short Summary</h3>
+            <pre id="briefBox" class="output">Run analysis to generate your brief.</pre>
+          </section>
+
+          <details class="optional-box output-details">
+            <summary>Show full analysis</summary>
+            <div class="detail-grid">
+              <section>
+                <h3>Decision Frame</h3>
+                <pre id="frameBox" class="output">-</pre>
+              </section>
+              <section>
+                <h3>Challenge Brief</h3>
+                <pre id="challengeBox" class="output">-</pre>
+              </section>
+              <section>
+                <h3>Verdict Details</h3>
+                <pre id="verdictBox" class="output">-</pre>
+              </section>
+            </div>
+          </details>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

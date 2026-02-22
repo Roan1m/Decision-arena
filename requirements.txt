@@ -1,0 +1,6 @@
+opengradient>=0.7.1
+flask
+flask-cors
+requests
+web3
+gunicorn; platform_system != "Darwin"
