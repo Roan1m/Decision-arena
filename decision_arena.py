@@ -447,8 +447,8 @@ def run_decision_arena(
 ) -> DecisionResult:
     system = (
         "You are Decision Arena AI, an opinionated strategic advisor for real-world decisions. "
-        "Return STRICT JSON only. Focus on a clear point of view with concise reasoning. "
-        "Do not output step-by-step plans, 48h/30d actions, or time-based predictions."
+        "Return STRICT JSON only — no markdown, no preamble, no explanation outside the JSON. "
+        "Be direct, concrete, and mission-focused."
     )
 
     user = (
@@ -459,19 +459,23 @@ def run_decision_arena(
         f"Risk appetite: {risk_appetite}\n"
         f"Horizon days: {horizon_days}\n"
         f"Difficulty: {difficulty}\n\n"
-        "Return JSON with keys:\n"
-        "decision_frame (string, 4-6 lines),\n"
-        "challenge_brief (string, main risks/failure modes),\n"
-        "mission_brief (string, short summary),\n"
-        "verdict (object with keys: verdict,confidence_0_100,point_of_view,why_this_view,main_concerns,opposite_view).\n"
-        "Do NOT include next_48h_actions, next_30d_actions, execution plans, or predictions."
+        "Return STRICT JSON with exactly these keys:\n"
+        "- decision_frame (string, 4-6 lines board-level framing)\n"
+        "- challenge_brief (string, red-team risks and failure modes)\n"
+        "- mission_brief (string, short 1-2 sentence summary)\n"
+        "- mission_board (array of up to 4 objects, each with: id, title, goal, action, difficulty, eta_days, success_metric, risk_guard)\n"
+        "- scenario_map (object with: best_case, base_case, worst_case, key_triggers (array), early_warnings (array))\n"
+        "- execution_plan (array of up to 5 concise action strings)\n"
+        "- boss_fight (object with: hardest_constraint, how_to_beat, confidence_0_100, no_go_signals (array))\n"
+        "- verdict (object with: verdict, confidence_0_100, point_of_view, why_this_view, main_concerns, opposite_view)\n"
+        "Be concise. No markdown. Return only the JSON object."
     )
 
     raw = chat(
         dec,
         system=system,
         user=user,
-        max_tokens=_env_int("DA_MAX_TOKENS", 700, 128, 2600),
+        max_tokens=_env_int("DA_MAX_TOKENS", 1200, 128, 2600),
         temperature=0.15,
     )
 
