@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Vercel serverless entrypoint."""
+"""Vercel serverless entrypoint for Decision Arena Studio.
 
-from pathlib import Path
+Vercel looks for api/index.py and expects a WSGI-compatible `app` object.
+All routes are rewritten here via vercel.json.
+"""
+
 import sys
+import os
 
-ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+# Ensure the project root is on the path so web_app imports work.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from web_app import app  # noqa: E402
+from web_app import app  # noqa: E402  (import after sys.path patch)
+
+# Vercel needs the WSGI callable to be named `app` at module level.
+__all__ = ["app"]
